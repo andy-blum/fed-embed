@@ -1,0 +1,14 @@
+{
+  "name": "rss-feed",
+  "version": "1.0.0",
+  "description": "A standalone web component you can use to embed an RSS feed on a webpage.",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "jsmin": "^1.0.1",
+    "typescript": "^5.1.6"
+  },
+  "scripts": {
+    "start": "yarn tsc && node build.mjs"
+  }
+}
