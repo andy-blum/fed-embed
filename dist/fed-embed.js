@@ -1,16 +1,23 @@
 class FedEmbed extends HTMLElement {
+    feedUrl;
+    timeout;
+    user;
+    post;
     constructor() {
         super();
-        const { source, timeout } = this.dataset;
+        const { source, timeout, user, post } = this.dataset;
         try {
             this.feedUrl = new URL(source);
         }
-        catch (error) {
-            console.error(error);
-            console.error('A fed-embed element did not have a valid source URL and has self-destructed.');
-            this.remove();
-            return;
+        catch (_error) { }
+        try {
+            this.user = new URL(user);
         }
+        catch (_error) { }
+        try {
+            this.post = new URL(post);
+        }
+        catch (_error) { }
         this.timeout = Number(timeout) || 600;
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(`
@@ -31,8 +38,26 @@ class FedEmbed extends HTMLElement {
     `);
         document.adoptedStyleSheets = [sheet];
     }
-    async connectedCallback() {
-        const feed = await this.getFeed();
+    connectedCallback() {
+        switch (true) {
+            case (!!this.feedUrl):
+                this.renderRSSFeed();
+                break;
+            case (!!this.user):
+                this.renderJSONFeed();
+                break;
+            case (!!this.post):
+                this.renderPost();
+                break;
+            default:
+                console.error(`No valid URLs found on ${this.outerHTML}`);
+                this.selfDestruct();
+                break;
+        }
+    }
+    async renderRSSFeed() {
+        const feedString = await this.fetch(this.feedUrl);
+        const feed = this.parseXML(feedString);
         const postsList = document.createElement('ul');
         feed.querySelectorAll('item').forEach(item => {
             const text = item.querySelector('description').textContent;
@@ -40,39 +65,76 @@ class FedEmbed extends HTMLElement {
         });
         this.append(postsList);
     }
-    async getFeed() {
-        const { feedUrl } = this;
-        let cachedFeed = false;
+    async renderJSONFeed() {
+        const { origin, pathname } = this.user;
+        let accountLookupURL, statusesURL;
         try {
-            cachedFeed = localStorage.getItem(feedUrl.toString()) || false;
+            accountLookupURL = new URL(`${origin}/api/v1/accounts/lookup?acct=${pathname.replaceAll(/\/@/g, '')}`);
         }
-        catch (_error) { }
-        if (cachedFeed) {
-            const { expires, feedString: cachedString } = JSON.parse(cachedFeed);
-            if (expires < Date.now()) {
-                localStorage.removeItem(feedUrl.toString());
-                const feedText = await this.fetchRss();
-                return this.parseXML(feedText);
-            }
-            else {
-                return this.parseXML(cachedString);
-            }
+        catch (error) {
+            this.selfDestruct(error);
+            return;
         }
-        const feedText = await this.fetchRss();
-        return this.parseXML(feedText);
+        const { error, id } = JSON.parse(await this.fetch(accountLookupURL));
+        if (error) {
+            this.selfDestruct(error);
+            return;
+        }
+        try {
+            statusesURL = new URL(`${origin}/api/v1/accounts/${id}/statuses?exclude_replies=true&exclude_reblogs=true`);
+        }
+        catch (error) {
+            this.selfDestruct(error);
+            return;
+        }
+        const posts = JSON.parse(await this.fetch(statusesURL));
+        const postsList = document.createElement('ul');
+        posts.forEach((post) => {
+            postsList.insertAdjacentHTML('beforeend', `<li>${post.content}</li>`);
+        });
+        this.append(postsList);
     }
-    async fetchRss() {
-        const { feedUrl, timeout } = this;
-        const request = await fetch(feedUrl);
+    async renderPost() {
+        const { origin, pathname } = this.post;
+        let postURL;
+        try {
+            postURL = new URL(`${origin}/api/v1/statuses/${pathname.split('/').at(-1)}`);
+        }
+        catch (error) {
+            this.selfDestruct(error);
+            return;
+        }
+        const { error, content } = JSON.parse(await this.fetch(postURL));
+        if (error) {
+            this.selfDestruct(error);
+            return;
+        }
+        this.insertAdjacentHTML('beforeend', content);
+    }
+    selfDestruct(error = null) {
+        if (error) {
+            console.error(error);
+        }
+        console.error('A <fed-embed> element has self destructed. Additional logging information may be available above.');
+        this.remove();
+    }
+    async fetch(sourceURL) {
+        const { timeout } = this;
+        const cachedFeed = localStorage.getItem(sourceURL.toString()) || false;
+        if (cachedFeed) {
+            const { expires, dataAsString } = JSON.parse(cachedFeed);
+            if (expires > Date.now()) {
+                return dataAsString;
+            }
+            localStorage.removeItem(sourceURL.toString());
+        }
+        const request = await fetch(sourceURL.toString());
         const response = await request.text();
         const cacheItem = {
             expires: Date.now() + (timeout * 1000),
-            feedString: response,
+            dataAsString: response,
         };
-        try {
-            localStorage.setItem(feedUrl.toString(), JSON.stringify(cacheItem));
-        }
-        catch (_error) { }
+        localStorage.setItem(sourceURL.toString(), JSON.stringify(cacheItem));
         return response;
     }
     parseXML(xmlString) {
