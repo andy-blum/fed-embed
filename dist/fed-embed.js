@@ -14,12 +14,18 @@ class FedEmbed extends HTMLElement {
         this.timeout = Number(timeout) || 600;
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(`
+      :where(fed-embed) {
+        display: block;
+      }
+
       :where(fed-embed ul) {
         list-style-type: none;
+        margin: 0;
+        padding: 0;
       }
 
       :where(fed-embed li) {
-        padding: 0.5em;
+        padding: 0.5rem 1.5rem;
         border-bottom: 1px solid #ccc;
       }
     `);
