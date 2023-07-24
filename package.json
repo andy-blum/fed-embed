@@ -9,8 +9,8 @@
     "typescript": "^5.1.6"
   },
   "scripts": {
-    "build": "yarn tsc && node build.mjs && cp ./dist/fed-embed.min.js ./docs/fed-embed.min.js",
-    "dev": "parcel index.html  --dist-dir './docs' --no-source-maps",
-    "deploy": "parcel build index.html --dist-dir './docs' --no-source-maps"
+    "build": "yarn tsc && node build.mjs",
+    "dev": "parcel index.html  --dist-dir './test' --no-source-maps",
+    "deploy": "parcel build index.html --dist-dir './docs' --no-source-maps --public-url ./"
   }
 }
