@@ -13,12 +13,14 @@ All it takes is a single javascript file & one new element in your markup to emb
 ```html
 <html>
   <body>
-    <fed-embed data-source="url/to/user.rss"></fed-embed>
-    <script src="https://cdn.jsdelivr.net/gh/andy-blum/fed-embed/dist/fed-embed.min.js" timeout="600" type="module"></script>
+    <!-- Get a user's latest posts -->
+    <fed-embed data-user="https://mastodon.social/@mastodon"></fed-embed>
+
+    <!-- Get a specific post -->
+    <fed-embed data-post="https://mastodon.social/@Mastodon/5258563"></fed-embed>
+
+    <!-- Note the version number in the URL -->
+    <script src="//cdn.jsdelivr.net/gh/andy-blum/fed-embed@1.0.0/dist/fed-embed.min.js"></script>
   </body>
 </html>
 ```
-
-[Demo Codepen!](https://codepen.io/andy-blum/pen/yLQzVor)
-
-_Note that localStorage access is blocked in iFrames so the caching abilities aren't visible in demo._
