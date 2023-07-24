@@ -1,14 +1,16 @@
 {
-  "name": "rss-feed",
+  "name": "fed-embed",
   "version": "1.0.0",
   "description": "A standalone web component you can use to embed an RSS feed on a webpage.",
-  "main": "index.js",
   "license": "MIT",
   "devDependencies": {
     "jsmin": "^1.0.1",
+    "parcel": "^2.9.3",
     "typescript": "^5.1.6"
   },
   "scripts": {
-    "start": "yarn tsc && node build.mjs"
+    "build": "yarn tsc && node build.mjs",
+    "dev": "parcel index.html  --dist-dir './test' --no-source-maps",
+    "deploy": "parcel build index.html --dist-dir './docs' --no-source-maps --public-url ./"
   }
 }
